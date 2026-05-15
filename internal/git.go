@@ -138,7 +138,59 @@ func parseGitLog(output string, repo string) ([]Commit, error) {
 	if current != nil {
 		commits = append(commits, *current)
 	}
-	return commits, scanner.Err()
+	// Post-process: filter out unhelpful commits to save LLM context.
+	// Exclude merge housekeeping, explicit submodule update chores, and
+	// commits that only touch the .gitmodules file.
+	filtered := make([]Commit, 0, len(commits))
+	for _, c := range commits {
+		if shouldExcludeCommit(c) {
+			continue
+		}
+		filtered = append(filtered, c)
+	}
+	return filtered, scanner.Err()
+}
+
+// shouldExcludeCommit returns true for commits that are safe to drop before
+// sending payloads to the on-device model: merge housekeeping, submodule
+// updates, and commits that only modify .gitmodules.
+func shouldExcludeCommit(c Commit) bool {
+	msg := strings.TrimSpace(c.Message)
+	if msg == "" {
+		return false
+	}
+
+	// Common merge messages we don't need in the standup context.
+	if strings.HasPrefix(msg, "Merge remote-tracking") ||
+		strings.HasPrefix(msg, "Merge branch") ||
+		strings.HasPrefix(msg, "Merge pull request") {
+		return true
+	}
+
+	lower := strings.ToLower(msg)
+	if strings.HasPrefix(lower, "chore: update submodule") || strings.Contains(lower, "update submodule") {
+		return true
+	}
+
+	// If the commit only changes .gitmodules, drop it.
+	if len(c.FilesChanged) > 0 {
+		onlyGitmodules := true
+		for _, f := range c.FilesChanged {
+			p := strings.TrimSpace(f.Path)
+			if p == "" {
+				continue
+			}
+			if p != ".gitmodules" && p != "./.gitmodules" {
+				onlyGitmodules = false
+				break
+			}
+		}
+		if onlyGitmodules {
+			return true
+		}
+	}
+
+	return false
 }
 
 // extractBranchFromDecoration extracts a local branch name from git's %D decoration.
