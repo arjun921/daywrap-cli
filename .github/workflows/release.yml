@@ -1,0 +1,67 @@
+name: Release
+
+on:
+    push:
+        tags: ["v*.*.*"]
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        name: Build ${{ matrix.suffix }}
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                include:
+                    - { goos: darwin, goarch: amd64, suffix: darwin-amd64 }
+                    - { goos: darwin, goarch: arm64, suffix: darwin-arm64 }
+                    - { goos: linux, goarch: amd64, suffix: linux-amd64 }
+                    - { goos: linux, goarch: arm64, suffix: linux-arm64 }
+                    - {
+                          goos: windows,
+                          goarch: amd64,
+                          suffix: windows-amd64.exe,
+                      }
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+                  cache-dependency-path: go.sum
+
+            - name: Build
+              env:
+                  GOOS: ${{ matrix.goos }}
+                  GOARCH: ${{ matrix.goarch }}
+                  CGO_ENABLED: 0
+              run: |
+                  go mod tidy
+                  go build \
+                    -ldflags="-s -w -X github.com/arjun921/daywrap-cli/cmd.Version=${{ github.ref_name }}" \
+                    -o daywrap-${{ matrix.suffix }} .
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: daywrap-${{ matrix.suffix }}
+                  path: daywrap-${{ matrix.suffix }}
+
+    release:
+        name: Publish GitHub Release
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/download-artifact@v4
+              with:
+                  path: dist
+                  merge-multiple: true
+
+            - name: Create release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: |
+                      dist/*
+                      install.sh
+                  generate_release_notes: true
