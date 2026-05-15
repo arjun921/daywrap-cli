@@ -1,58 +1,61 @@
-# daywrap CLI
+# daywrap
 
-Privacy-first CLI tool for generating animated QR-based daily standup data from local git history.
+Turn your daily git commits into standups and brag docs — powered by an on-device AI model. No data leaves your machine.
+
+**[daywrap.dev](https://daywrap.dev)** · [Releases](https://github.com/arjun921/daywrap-cli/releases) · [Issues](https://github.com/arjun921/daywrap-cli/issues)
+
+---
 
 ## Install
 
 ```bash
-brew tap arjun921/tap
-brew install daywrap
+curl -fsSL https://raw.githubusercontent.com/arjun921/daywrap-cli/main/install.sh | bash
 ```
 
 Or download a pre-built binary from [GitHub Releases](https://github.com/arjun921/daywrap-cli/releases).
 
+> macOS and Linux · Intel and Apple Silicon · no root required
+
+---
+
 ## Usage
 
 ```bash
-# Scan today's git activity and display animated QR codes
+# Today's activity
 daywrap
 
-# Specify a date range
-daywrap --since "2026-05-13" --until "2026-05-15"
+# Specific date range
+daywrap --since 2026-05-13 --until 2026-05-15
 
-# Scan specific repo paths
-daywrap --repo ~/work/backend --repo ~/work/frontend
-
-# Weekly summary
+# Current week (Monday to today)
 daywrap --weekly
 
-# Output raw JSON (debug)
-daywrap --raw
+# Scan specific repos
+daywrap --repo ~/work/backend --repo ~/work/frontend
+
+# Filter by author (defaults to current git user)
+daywrap --author "you@example.com"
 ```
 
-## How it works
+Point the DayWrap mobile app at the QR codes on your screen. No network required.
 
-1. Reads local `.git` log for the target period.
-2. Enriches commits with ticket IDs extracted from branch names.
-3. Compresses the JSON payload with zlib.
-4. Splits into QR-sized chunks (`DW:<index>:<total>:<base64>`).
-5. Renders each chunk as an animated QR code in the terminal at 5 fps.
-
-Point your phone's DayWrap app at the screen to receive the data — no network required.
+---
 
 ## Optional config (`~/.daywrap.yml`)
 
 ```yaml
 jira:
-  base_url: "https://company.atlassian.net"
+  base_url: "https://your-company.atlassian.net"
 
 repos:
   - ~/work/backend
   - ~/work/frontend
-
-ticket_pattern: "(ENG|PROJ|PLAT)-\\d+"
 ```
+
+Jira credentials are read from `$JIRA_TOKEN` or `~/.netrc` — never stored by daywrap.
+
+---
 
 ## Privacy
 
-The CLI is fully open source and contains zero proprietary logic. It never stores credentials, never opens network connections, and never transmits data outside the local machine.
+daywrap is fully open source. It reads only your local git history, never opens a network connection of its own, and never stores or transmits your data. The QR transfer happens directly from your screen to your phone — no server in between.
