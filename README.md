@@ -2,7 +2,7 @@
 
 Turn your daily git commits into standups and brag docs — powered by an on-device AI model. No data leaves your machine.
 
-**[daywrap.dev](https://daywrap.dev)** · [Releases](https://github.com/arjun921/daywrap-cli/releases) · [Issues](https://github.com/arjun921/daywrap-cli/issues)
+**[daywr.app](https://daywr.app)** · [Releases](https://github.com/arjun921/daywrap-cli/releases) · [Issues](https://github.com/arjun921/daywrap-cli/issues)
 
 ---
 
