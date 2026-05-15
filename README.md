@@ -4,9 +4,9 @@ Turn your daily git commits into standups and brag docs — powered by an on-dev
 
 **[daywr.app](https://daywr.app)** · [Releases](https://github.com/arjun921/daywrap-cli/releases) · [Issues](https://github.com/arjun921/daywrap-cli/issues)
 
-![License](https://img.shields.io/github/license/arjun921/daywrap-cli)
-![Go](https://img.shields.io/github/go-mod/go-version/arjun921/daywrap-cli)
-![Release](https://img.shields.io/github/v/release/arjun921/daywrap-cli)
+[![License](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.22-blue?logo=go)](https://golang.org)
+[![Release](https://img.shields.io/badge/release-v0.1.1-blue)](https://github.com/arjun921/daywrap-cli/releases/latest)
 
 ---
 
