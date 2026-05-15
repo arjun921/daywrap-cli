@@ -1,0 +1,13 @@
+# Binaries
+daywrap
+daywrap-*
+
+# Go build cache
+*.test
+*.out
+
+# macOS
+.DS_Store
+
+# Config with secrets
+.daywrap.yml
