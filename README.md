@@ -4,6 +4,34 @@ Turn your daily git commits into standups and brag docs — powered by an on-dev
 
 **[daywr.app](https://daywr.app)** · [Releases](https://github.com/arjun921/daywrap-cli/releases) · [Issues](https://github.com/arjun921/daywrap-cli/issues)
 
+![License](https://img.shields.io/github/license/arjun921/daywrap-cli)
+![Go](https://img.shields.io/github/go-mod/go-version/arjun921/daywrap-cli)
+![Release](https://img.shields.io/github/v/release/arjun921/daywrap-cli)
+
+---
+
+Most developers undersell six months of work in a 15-minute self-review. DayWrap captures it automatically, every day.
+
+---
+
+## How it works
+
+```
+[Your laptop]                        [Your phone]
+     |                                     |
+  daywrap CLI                     DayWrap mobile app
+     |                                     |
+  reads local .git history        scans QR code from screen
+  enriches with file stats        reassembles payload
+  compresses into QR payload      runs LLM on-device
+     |                                     |
+     +------- AIR GAP (QR only) ----------+
+```
+
+No server. No network between devices. No OAuth. No account.
+
+The CLI reads your local git history, enriches it with file-level stats and ticket IDs from your branch names, and renders a QR code in your terminal. Point the DayWrap mobile app at your screen. The app picks up the payload and generates a standup or brag doc using an on-device LLM. Everything stays on your hardware.
+
 ---
 
 ## Install
@@ -14,7 +42,7 @@ curl -fsSL https://raw.githubusercontent.com/arjun921/daywrap-cli/main/install.s
 
 Or download a pre-built binary from [GitHub Releases](https://github.com/arjun921/daywrap-cli/releases).
 
-> macOS and Linux · Intel and Apple Silicon · no root required
+> macOS and Linux · Intel and Apple Silicon · no root required · single binary, zero dependencies
 
 ---
 
@@ -35,9 +63,12 @@ daywrap --repo ~/work/backend --repo ~/work/frontend
 
 # Filter by author (defaults to current git user)
 daywrap --author "you@example.com"
+
+# Output raw JSON instead of QR (for debugging)
+daywrap --raw
 ```
 
-Point the DayWrap mobile app at the QR codes on your screen. No network required.
+Point the DayWrap mobile app at the QR code on your screen. No network required.
 
 ---
 
@@ -50,12 +81,25 @@ jira:
 repos:
   - ~/work/backend
   - ~/work/frontend
+
+ticket_pattern: "(ENG|PROJ|PLAT)-\\d+"
 ```
 
 Jira credentials are read from `$JIRA_TOKEN` or `~/.netrc` — never stored by daywrap.
 
 ---
 
-## Privacy
+## Security & Privacy
 
-daywrap is fully open source. It reads only your local git history, never opens a network connection of its own, and never stores or transmits your data. The QR transfer happens directly from your screen to your phone — no server in between.
+daywrap is designed for engineers at companies with strict security policies. Here is what it guarantees:
+
+- **Zero outbound network connections.** The CLI never phones home, never checks for updates over the network, and never transmits any data anywhere. Verify this yourself — the entire CLI is under 1,000 lines of Go.
+- **No source code is extracted.** Only commit metadata is read: messages, file names, timestamps, and branch names. Your actual code is never included in the QR payload.
+- **No credentials are stored.** Jira enrichment is optional and uses your existing local auth (`$JIRA_TOKEN` or `~/.netrc`). daywrap never writes credentials to disk.
+- **Fully open source.** Audit every line at [github.com/arjun921/daywrap-cli](https://github.com/arjun921/daywrap-cli).
+
+---
+
+## License
+
+MIT
