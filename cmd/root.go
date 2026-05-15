@@ -11,6 +11,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version is set at build time via -ldflags "-X github.com/arjun921/daywrap-cli/cmd.Version=v1.2.3"
+var Version = "dev"
+
 var (
 	since   string
 	until   string
@@ -21,8 +24,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "daywrap",
-	Short: "Generate animated QR standup data from local git history",
+	Use:     "daywrap",
+	Version: Version,
+	Short:   "Generate animated QR standup data from local git history",
 	Long: `DayWrap reads your local git history, enriches commits with ticket IDs,
 compresses the payload, and renders it as animated QR codes for scanning
 with the DayWrap mobile app. No network required.`,
