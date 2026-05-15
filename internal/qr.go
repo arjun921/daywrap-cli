@@ -8,36 +8,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
-	"unsafe"
 
 	qrcode "github.com/skip2/go-qrcode"
 )
-
-// winsize mirrors the TIOCGWINSZ kernel struct.
-type winsize struct {
-	Row    uint16
-	Col    uint16
-	Xpixel uint16
-	Ypixel uint16
-}
-
-// GetTermSize returns the current terminal dimensions, defaulting to 80×24
-// when stdout is not a TTY or the ioctl call fails.
-func GetTermSize() (cols, rows int) {
-	ws := new(winsize)
-	_, _, errno := syscall.Syscall(
-		syscall.SYS_IOCTL,
-		uintptr(os.Stdout.Fd()),
-		syscall.TIOCGWINSZ,
-		uintptr(unsafe.Pointer(ws)),
-	)
-	if errno != 0 || ws.Col == 0 || ws.Row == 0 {
-		return 80, 24
-	}
-	return int(ws.Col), int(ws.Row)
-}
 
 // qrCapacityL is the maximum byte-mode capacity (error correction level L) for
 // QR versions 1–40 (index 0 unused).
@@ -163,7 +137,7 @@ func equalisedChunks(chunks []string) ([]string, error) {
 // It cycles through all chunks at 5 fps until the user presses Ctrl+C.
 func Display(chunks []string) error {
 	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sig, os.Interrupt)
 	defer signal.Stop(sig)
 
 	// Equalise QR versions so every frame renders at the same pixel size.
