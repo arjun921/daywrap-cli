@@ -3,7 +3,7 @@
 # Usage: curl -fsSL https://raw.githubusercontent.com/arjun921/daywrap/main/cli/install.sh | bash
 set -euo pipefail
 
-REPO="arjun921/daywrap"
+REPO="arjun921/daywrap-cli"
 BINARY_NAME="daywrap"
 INSTALL_DIR="${DAYWRAP_INSTALL_DIR:-}"
 
