@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # DayWrap CLI installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/arjun921/daywrap/main/cli/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/arjun921/daywrap-cli/main/install.sh | bash
 set -euo pipefail
 
 REPO="arjun921/daywrap-cli"
