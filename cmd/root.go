@@ -53,6 +53,16 @@ func run(cmd *cobra.Command, args []string) error {
 		repoPaths = []string{cwd}
 	}
 
+	// Expand each path: use it directly if it's a git repo, otherwise
+	// walk subdirectories to discover all nested git repositories.
+	repoPaths, err = internal.DiscoverRepos(repoPaths)
+	if err != nil {
+		return fmt.Errorf("repo discovery: %w", err)
+	}
+	if len(repoPaths) == 0 {
+		return fmt.Errorf("no git repositories found in the given paths")
+	}
+
 	// 1. Read git history.
 	commits, err := internal.ReadCommits(repoPaths, sinceT, untilT)
 	if err != nil {

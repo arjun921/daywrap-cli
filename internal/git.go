@@ -57,7 +57,14 @@ func readCommitsFromRepo(repoPath string, since, until time.Time) ([]Commit, err
 	out, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("git log failed: %s", strings.TrimSpace(string(exitErr.Stderr)))
+			stderr := strings.TrimSpace(string(exitErr.Stderr))
+			// An uninitialised repo (no commits yet) is not an error worth
+			// aborting the whole run; just return nothing for this path.
+			if strings.Contains(stderr, "does not have any commits") ||
+				strings.Contains(stderr, "bad default revision") {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("git log failed: %s", stderr)
 		}
 		return nil, err
 	}
