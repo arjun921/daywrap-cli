@@ -1,13 +1,36 @@
-# Binaries
+# Compiled binaries
 daywrap
 daywrap-*
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# Go build cache
+# Go test & coverage artifacts
 *.test
 *.out
+coverage.txt
+coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependency vendor dir (if used)
+vendor/
+
+# Build / release output
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # macOS
 .DS_Store
 
-# Config with secrets
+# User config (may contain private base URLs)
 .daywrap.yml
