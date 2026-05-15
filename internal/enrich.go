@@ -25,7 +25,12 @@ func EnrichCommits(commits []Commit, cfg *Config) []Commit {
 	if pattern == "" {
 		pattern = DefaultTicketPattern
 	}
-	re := regexp.MustCompile(pattern)
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		// Invalid user-supplied pattern — skip enrichment rather than panic.
+		fmt.Fprintf(os.Stderr, "daywrap: invalid ticket_pattern %q: %v\n", pattern, err)
+		return commits
+	}
 
 	for i, c := range commits {
 		id := re.FindString(c.Branch)
@@ -54,8 +59,13 @@ func fetchJiraTitle(baseURL, ticketID string) (string, error) {
 	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") {
 		return "", fmt.Errorf("jira base_url must be a valid HTTP/HTTPS URL")
 	}
+	if parsed.Scheme == "http" {
+		fmt.Fprintln(os.Stderr, "daywrap: warning: jira base_url uses plain HTTP — credentials will be sent unencrypted")
+	}
 
-	endpoint := strings.TrimRight(baseURL, "/") + "/rest/api/2/issue/" + ticketID + "?fields=summary"
+	// url.PathEscape ensures ticket IDs with unexpected characters (e.g. from a
+	// custom ticket_pattern) cannot introduce path traversal in the API endpoint.
+	endpoint := strings.TrimRight(baseURL, "/") + "/rest/api/2/issue/" + url.PathEscape(ticketID) + "?fields=summary"
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
