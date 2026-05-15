@@ -5,6 +5,7 @@ package internal
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const maxDiscoverDepth = 3
@@ -36,6 +37,9 @@ func DiscoverRepos(roots []string) ([]string, error) {
 		}
 		if isGitRepo(abs) {
 			add(abs)
+			for _, s := range findSubmodules(abs) {
+				add(s)
+			}
 			continue
 		}
 		found, err := walkRepos(abs, 0)
@@ -81,7 +85,9 @@ func walkRepos(dir string, depth int) ([]string, error) {
 		child := filepath.Join(dir, name)
 		if isGitRepo(child) {
 			repos = append(repos, child)
-			// Don't recurse into a found repo (avoids double-counting submodules).
+			for _, s := range findSubmodules(child) {
+				repos = append(repos, s)
+			}
 		} else {
 			sub, err := walkRepos(child, depth+1)
 			if err != nil {
@@ -91,6 +97,29 @@ func walkRepos(dir string, depth int) ([]string, error) {
 		}
 	}
 	return repos, nil
+}
+
+// findSubmodules reads .gitmodules in repoPath and returns the absolute paths
+// of any declared submodules that are already checked out (i.e. have a .git
+// entry). It does not require `git submodule init` to have been run.
+func findSubmodules(repoPath string) []string {
+	data, err := os.ReadFile(filepath.Join(repoPath, ".gitmodules"))
+	if err != nil {
+		return nil // no .gitmodules → not a repo with submodules
+	}
+	var subs []string
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		after, ok := strings.CutPrefix(line, "path = ")
+		if !ok {
+			continue
+		}
+		sub := filepath.Join(repoPath, strings.TrimSpace(after))
+		if isGitRepo(sub) {
+			subs = append(subs, sub)
+		}
+	}
+	return subs
 }
 
 // shouldSkip returns true for directory names that are never project roots.

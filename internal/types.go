@@ -17,11 +17,12 @@ type Period struct {
 
 // Commit represents a single git commit enriched with file stats and ticket info.
 type Commit struct {
+	Repo         string       `json:"repo,omitempty"`
 	Hash         string       `json:"hash"`
 	Message      string       `json:"message"`
 	Branch       string       `json:"branch"`
 	Timestamp    string       `json:"timestamp"`
-	FilesChanged []FileChange `json:"files_changed"`
+	FilesChanged []FileChange `json:"files_changed,omitempty"`
 	Ticket       *Ticket      `json:"ticket,omitempty"`
 }
 

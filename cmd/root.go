@@ -17,6 +17,7 @@ var (
 	repos   []string
 	weekly  bool
 	rawJSON bool
+	author  string
 )
 
 var rootCmd = &cobra.Command{
@@ -64,7 +65,12 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// 1. Read git history.
-	commits, err := internal.ReadCommits(repoPaths, sinceT, untilT)
+	// Resolve author filter: flag > auto-detect from git config.
+	authorFilter := author
+	if authorFilter == "" {
+		authorFilter = internal.CurrentGitAuthor()
+	}
+	commits, err := internal.ReadCommits(repoPaths, sinceT, untilT, authorFilter)
 	if err != nil {
 		return fmt.Errorf("git: %w", err)
 	}
@@ -202,4 +208,5 @@ func init() {
 	rootCmd.Flags().StringArrayVar(&repos, "repo", nil, "Repo path(s) to scan (repeatable)")
 	rootCmd.Flags().BoolVar(&weekly, "weekly", false, "Scan current week (Monday to today) instead of today")
 	rootCmd.Flags().BoolVar(&rawJSON, "raw", false, "Output raw JSON instead of QR codes (debug)")
+	rootCmd.Flags().StringVar(&author, "author", "", "Filter by author name/email (default: current git config user)")
 }

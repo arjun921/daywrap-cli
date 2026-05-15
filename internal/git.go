@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -14,12 +15,12 @@ import (
 )
 
 // ReadCommits runs git log on the given repo paths and returns parsed commits.
-// Commits are grouped by repo in timestamp order within each repo, matching
-// the multi-repo merge strategy from the spec.
-func ReadCommits(repoPaths []string, since, until time.Time) ([]Commit, error) {
+// author filters to commits by that author pattern (git --author= format); pass
+// an empty string to include all authors.
+func ReadCommits(repoPaths []string, since, until time.Time, author string) ([]Commit, error) {
 	var all []Commit
 	for _, path := range repoPaths {
-		commits, err := readCommitsFromRepo(path, since, until)
+		commits, err := readCommitsFromRepo(path, since, until, author)
 		if err != nil {
 			return nil, fmt.Errorf("repo %s: %w", path, err)
 		}
@@ -28,7 +29,21 @@ func ReadCommits(repoPaths []string, since, until time.Time) ([]Commit, error) {
 	return all, nil
 }
 
-func readCommitsFromRepo(repoPath string, since, until time.Time) ([]Commit, error) {
+// CurrentGitAuthor returns the email from `git config user.email`, falling back
+// to the name if no email is configured, or an empty string if neither is set.
+func CurrentGitAuthor() string {
+	for _, field := range []string{"user.email", "user.name"} {
+		out, err := exec.Command("git", "config", "--global", field).Output()
+		if err == nil {
+			if v := strings.TrimSpace(string(out)); v != "" {
+				return v
+			}
+		}
+	}
+	return ""
+}
+
+func readCommitsFromRepo(repoPath string, since, until time.Time, author string) ([]Commit, error) {
 	// Expand ~ shorthand safely without shell interpolation.
 	if strings.HasPrefix(repoPath, "~/") {
 		home, err := os.UserHomeDir()
@@ -46,14 +61,18 @@ func readCommitsFromRepo(repoPath string, since, until time.Time) ([]Commit, err
 	untilStr := until.Format(time.RFC3339)
 
 	// COMMIT: prefix lets us reliably split the interleaved --numstat output.
-	cmd := exec.Command("git",
+	args := []string{
 		"-C", repoPath,
 		"log",
-		"--since="+sinceStr,
-		"--until="+untilStr,
+		"--since=" + sinceStr,
+		"--until=" + untilStr,
 		`--pretty=format:COMMIT:%h|%s|%D|%ai`,
 		"--numstat",
-	)
+	}
+	if author != "" {
+		args = append(args, "--author="+author)
+	}
+	cmd := exec.Command("git", args...)
 	out, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -69,11 +88,11 @@ func readCommitsFromRepo(repoPath string, since, until time.Time) ([]Commit, err
 		return nil, err
 	}
 
-	return parseGitLog(string(out))
+	return parseGitLog(string(out), filepath.Base(repoPath))
 }
 
 // parseGitLog parses the interleaved --pretty=format:COMMIT:... --numstat output.
-func parseGitLog(output string) ([]Commit, error) {
+func parseGitLog(output string, repo string) ([]Commit, error) {
 	var commits []Commit
 	var current *Commit
 
@@ -92,6 +111,7 @@ func parseGitLog(output string) ([]Commit, error) {
 				continue
 			}
 			current = &Commit{
+				Repo:      repo,
 				Hash:      strings.TrimSpace(parts[0]),
 				Message:   strings.TrimSpace(parts[1]),
 				Branch:    extractBranchFromDecoration(parts[2]),
