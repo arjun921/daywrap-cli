@@ -102,7 +102,7 @@ func readCommitsFromRepo(repoPath string, since, until time.Time, author string)
 //   - https://github.com/arjun921/daywrap-cli.git -> daywrap-cli
 //   - ssh://git@github.com/arjun921/daywrap-cli -> daywrap-cli
 func resolveRepoName(repoPath string) string {
-	fallback := filepath.Base(repoPath)
+	fallback := normalizeRepoAlias(filepath.Base(repoPath))
 
 	out, err := exec.Command("git", "-C", repoPath, "remote", "get-url", "origin").Output()
 	if err != nil {
@@ -129,7 +129,21 @@ func resolveRepoName(repoPath string) string {
 		return fallback
 	}
 
-	return name
+	return normalizeRepoAlias(name)
+}
+
+func normalizeRepoAlias(name string) string {
+	clean := strings.TrimSpace(name)
+	switch clean {
+	case "cli":
+		return "daywrap-cli"
+	case "mobile-app":
+		return "daywrap-mobile-app"
+	case "website":
+		return "daywrap-website"
+	default:
+		return clean
+	}
 }
 
 // parseGitLog parses the interleaved --pretty=format:COMMIT:... --numstat output.
