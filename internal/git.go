@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -57,6 +58,8 @@ func readCommitsFromRepo(repoPath string, since, until time.Time, author string)
 		return nil, fmt.Errorf("path does not exist: %s", repoPath)
 	}
 
+	repoName := resolveRepoName(repoPath)
+
 	sinceStr := since.Format(time.RFC3339)
 	untilStr := until.Format(time.RFC3339)
 
@@ -88,7 +91,45 @@ func readCommitsFromRepo(repoPath string, since, until time.Time, author string)
 		return nil, err
 	}
 
-	return parseGitLog(string(out), filepath.Base(repoPath))
+	return parseGitLog(string(out), repoName)
+}
+
+// resolveRepoName returns the canonical repository name derived from
+// `git remote get-url origin`, falling back to the local folder name.
+//
+// Examples:
+//   - git@github.com:arjun921/daywrap-cli.git -> daywrap-cli
+//   - https://github.com/arjun921/daywrap-cli.git -> daywrap-cli
+//   - ssh://git@github.com/arjun921/daywrap-cli -> daywrap-cli
+func resolveRepoName(repoPath string) string {
+	fallback := filepath.Base(repoPath)
+
+	out, err := exec.Command("git", "-C", repoPath, "remote", "get-url", "origin").Output()
+	if err != nil {
+		return fallback
+	}
+
+	url := strings.TrimSpace(string(out))
+	if url == "" {
+		return fallback
+	}
+
+	url = strings.TrimSuffix(url, "/")
+
+	// SCP-style URLs use "host:owner/repo.git" without a URI scheme.
+	if strings.Contains(url, ":") && !strings.Contains(url, "://") {
+		if idx := strings.LastIndex(url, ":"); idx >= 0 && idx+1 < len(url) {
+			url = url[idx+1:]
+		}
+	}
+
+	name := path.Base(url)
+	name = strings.TrimSuffix(name, ".git")
+	if name == "" || name == "." || name == "/" {
+		return fallback
+	}
+
+	return name
 }
 
 // parseGitLog parses the interleaved --pretty=format:COMMIT:... --numstat output.
