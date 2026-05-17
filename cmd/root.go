@@ -47,15 +47,15 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// Resolve repo paths: --repo flags > config > current directory.
 	repoPaths := repos
+	runDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("cannot determine working directory: %w", err)
+	}
 	if len(repoPaths) == 0 {
 		repoPaths = cfg.Repos
 	}
 	if len(repoPaths) == 0 {
-		cwd, werr := os.Getwd()
-		if werr != nil {
-			return fmt.Errorf("cannot determine working directory: %w", werr)
-		}
-		repoPaths = []string{cwd}
+		repoPaths = []string{runDir}
 	}
 
 	// Expand each path: use it directly if it's a git repo, otherwise
@@ -74,7 +74,7 @@ func run(cmd *cobra.Command, args []string) error {
 	if authorFilter == "" {
 		authorFilter = internal.CurrentGitAuthor()
 	}
-	commits, err := internal.ReadCommits(repoPaths, sinceT, untilT, authorFilter)
+	commits, err := internal.ReadCommits(repoPaths, runDir, sinceT, untilT, authorFilter)
 	if err != nil {
 		return fmt.Errorf("git: %w", err)
 	}

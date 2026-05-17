@@ -18,12 +18,18 @@ import (
 // ReadCommits runs git log on the given repo paths and returns parsed commits.
 // author filters to commits by that author pattern (git --author= format); pass
 // an empty string to include all authors.
-func ReadCommits(repoPaths []string, since, until time.Time, author string) ([]Commit, error) {
+func ReadCommits(repoPaths []string, runDir string, since, until time.Time, author string) ([]Commit, error) {
+	runAbs, err := filepath.Abs(runDir)
+	if err != nil {
+		return nil, fmt.Errorf("resolve run directory: %w", err)
+	}
+
 	var all []Commit
-	for _, path := range repoPaths {
-		commits, err := readCommitsFromRepo(path, since, until, author)
+	for _, repoPath := range repoPaths {
+		relRepoPath := relativeRepoPath(runAbs, repoPath)
+		commits, err := readCommitsFromRepo(repoPath, relRepoPath, since, until, author)
 		if err != nil {
-			return nil, fmt.Errorf("repo %s: %w", path, err)
+			return nil, fmt.Errorf("repo %s: %w", repoPath, err)
 		}
 		all = append(all, commits...)
 	}
@@ -44,7 +50,7 @@ func CurrentGitAuthor() string {
 	return ""
 }
 
-func readCommitsFromRepo(repoPath string, since, until time.Time, author string) ([]Commit, error) {
+func readCommitsFromRepo(repoPath, relativePath string, since, until time.Time, author string) ([]Commit, error) {
 	// Expand ~ shorthand safely without shell interpolation.
 	if strings.HasPrefix(repoPath, "~/") {
 		home, err := os.UserHomeDir()
@@ -91,7 +97,22 @@ func readCommitsFromRepo(repoPath string, since, until time.Time, author string)
 		return nil, err
 	}
 
-	return parseGitLog(string(out), repoName)
+	return parseGitLog(string(out), repoName, relativePath)
+}
+
+func relativeRepoPath(runDir, repoPath string) string {
+	repoAbs, err := filepath.Abs(repoPath)
+	if err != nil {
+		return filepath.Clean(repoPath)
+	}
+	rel, err := filepath.Rel(runDir, repoAbs)
+	if err != nil {
+		return repoAbs
+	}
+	if rel == "" {
+		return "."
+	}
+	return rel
 }
 
 // resolveRepoName returns the canonical repository name derived from
@@ -133,7 +154,7 @@ func resolveRepoName(repoPath string) string {
 }
 
 // parseGitLog parses the interleaved --pretty=format:COMMIT:... --numstat output.
-func parseGitLog(output string, repo string) ([]Commit, error) {
+func parseGitLog(output string, repo, repoPath string) ([]Commit, error) {
 	var commits []Commit
 	var current *Commit
 
@@ -153,6 +174,7 @@ func parseGitLog(output string, repo string) ([]Commit, error) {
 			}
 			current = &Commit{
 				Repo:      repo,
+				RepoPath:  repoPath,
 				Hash:      strings.TrimSpace(parts[0]),
 				Message:   strings.TrimSpace(parts[1]),
 				Branch:    extractBranchFromDecoration(parts[2]),
